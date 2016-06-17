@@ -1,0 +1,15 @@
+version: '2'
+services:
+  svn:
+    restart: always
+    build:
+      context: ./build
+#    image: docker.iata.org/svn
+    container_name: svn_server
+#    extra_hosts:
+#     - "docker.iata.org:192.169.4.240"
+    hostname: svn-server
+    volumes:
+      - ./svn-repo:/opt/svn/
+    ports:
+      - 81:80

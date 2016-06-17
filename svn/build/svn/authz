@@ -1,0 +1,7 @@
+[aliases]
+
+[groups]
+test = test
+
+[test:/]
+@test = rw
