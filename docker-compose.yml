@@ -1,44 +1,78 @@
 version: '2'
 services:
   svn:
-    extends:
-      file: ./svn/docker-compose-svn.yml
-      service: svn
-#  sonar:
-#    restart: always
-#    image: sonarqube
-#    container_name: sonar_server
-#    extra_hosts:
-#     - "docker.iata.org:192.169.4.240"
-#    hostname: sonar-server
-#    depends_on:
-#      - db
-#    ports:
-#      - 9000:9000
-#      - 9092:9092
-#    environment:
-#       - SONARQUBE_JDBC_URL=jdbc:postgresql://db:5432/sonar
-#  db:
-#    image: postgres
-#    container_name: sonar_postgres_db
-#    hostname: sonar-postgres-db
-#    volumes_from:
-#      - datadb
-#    environment:
-#     - POSTGRES_USER=sonar
-#     - POSTGRES_PASSWORD=sonar
+    restart: always
+    build:
+      context: ./svn/build
+    container_name: svn-server
+    hostname: svn-server
+    volumes_from: 
+      - svn-data
+    ports:
+      - 81:80
+  
+  jenkins:
+    restart: always
+    image: jenkinsci/jenkins
+    container_name: jenkins-server
+    hostname: jenkins-server
+    depends_on:
+      - svn
+    volumes_from: 
+      - jenkins-data
+    # remember to run "sudo chown 1000 <mount folder>", before your first run
+    ports:
+      - 8080:8080 
+      - 50000:50000
+  
+  sonar:
+    restart: always
+    image: sonarqube
+    container_name: sonar-server
+    hostname: sonar-server
+    depends_on:
+      - sonar-db
+    volumes_from:
+    - sonar-plugins-data
+    ports:
+      - 9000:9000
+      - 9092:9092
+    environment:
+       - SONARQUBE_JDBC_URL=jdbc:postgresql://sonar-db:5432/sonar
+    
+  sonar-db:
+    image: postgres
+    container_name: sonar-db
+    hostname: sonar-db
+    volumes_from:
+      - sonar-db-data
+    environment:
+     - POSTGRES_USER=sonar
+     - POSTGRES_PASSWORD=sonar
 
-#  datadb:
-#    image: alpine
-#    volumes:
-#      - ./data/postgresql:/var/lib/postgresql
-#    command: /bin/true
-
-#  plugins:
-#    image: alpine
-#    volumes:
-#     - ./data/sonarqube/extensions:/opt/sonarqube/extensions
-#     - ./data/sonarqube/bundled-plugins:/opt/sonarqube/lib/bundled-plugins
-#    command: /bin/true
+# -------------
+# storage
+# -------------
+  svn-data:
+    image: alpine
+    volumes:
+      - ./storage/svn-repo:/opt/svn/
+    command: /bin/true
+  jenkins-data:
+    image: alpine
+    volumes:
+      - ./storage/jenkins_data:/var/jenkins_home
+    command: chown 1000 /var/jenkins_home
+  sonar-plugins-data:
+    image: alpine
+    volumes:
+     - ./storage/sonarqube-data/extensions:/opt/sonarqube/extensions
+     - ./storage/sonarqube-data/bundled-plugins:/opt/sonarqube/lib/bundled-plugins
+    command: /bin/true
+  sonar-db-data:
+    image: alpine
+    volumes:
+      - ./storage/postgresql-data:/var/lib/postgresql
+    command: /bin/true
 
 
